@@ -1,0 +1,81 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-brand-paleBlue text-brand-charcoal font-body antialiased;
+    min-height: 100vh;
+  }
+
+  h1, h2, h3, h4 {
+    @apply font-heading text-brand-primary;
+  }
+
+  /* Visible, accessible focus ring across interactive elements (WCAG 2.4.7). */
+  *:focus-visible {
+    @apply outline-none ring-2 ring-brand-primary ring-offset-2 ring-offset-white;
+  }
+}
+
+@layer components {
+  .fahc-surface {
+    @apply bg-white rounded-2xl shadow-card border border-brand-lightGray/70;
+  }
+
+  .fahc-link {
+    @apply text-brand-primary font-medium underline-offset-2 hover:underline;
+  }
+
+  /* Action buttons (utilities inlined — no custom-class chaining) */
+  .fahc-btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold
+           transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed;
+  }
+  .fahc-btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold
+           transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed
+           bg-brand-primary text-white hover:bg-brand-darkBlue disabled:opacity-50;
+  }
+  .fahc-btn-gold {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold
+           transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed
+           bg-brand-gold text-brand-black hover:bg-brand-darkGold hover:text-white disabled:opacity-50;
+  }
+  .fahc-btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold
+           transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed
+           bg-transparent text-brand-primary hover:bg-brand-paleBlue disabled:opacity-50;
+  }
+
+  .fahc-input {
+    @apply block w-full rounded-xl border-brand-softBlue/70 bg-white text-brand-black shadow-sm
+           placeholder:text-brand-charcoal/40 focus:border-brand-primary focus:ring-brand-primary
+           disabled:bg-brand-lightGray disabled:text-brand-charcoal/60 disabled:cursor-not-allowed;
+  }
+
+  .fahc-label {
+    @apply block text-sm font-medium text-brand-charcoal mb-1.5;
+  }
+}
+
+/* Screen-reader-only utility */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
