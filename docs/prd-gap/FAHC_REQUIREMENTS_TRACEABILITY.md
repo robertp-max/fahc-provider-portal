@@ -36,6 +36,19 @@ noted limits · **DEFERRED** = intentionally not done (reason given).
 | 26 | ESLint | Testing Plan | Stub | `package.json` lint stub | n/a | DEFERRED — no ESLint installed; `check:phi`/`smoke`/`typecheck` substitute (see security review) |
 | 27 | `input[type=month]` cross-browser | §3 Revenue | n/a | `FAHCRevenueForm.tsx` | n/a | PARTIAL — degrades to text in Firefox/Safari; acceptable for prototype |
 
+## Pass 2 — expanded scope
+
+| # | Requirement | PRD source | Status before | Implementation files | Verification | Result |
+|---|-------------|-----------|---------------|----------------------|--------------|--------|
+| 28 | Business-listing state engine (Draft→Pending→Approved/Rejected→Draft; provider can't publish; reject needs comment; revert/rollback; transitions audited) | §4 / Listing | Missing | `src/lib/listings.ts`, `src/components/listing/FAHCListingPanel.tsx`, admin `agencies/[id]` | `verify:fahc`; manual | PASS |
+| 29 | Provider lifecycle gating (referrals/revenue/listing require Active) | Lifecycle | Missing | `src/components/provider/ProviderActiveGate.tsx`, `src/lib/api.ts` (`isAgencyActive`), referrals/revenue pages | `verify:fahc`; manual | PASS |
+| 30 | Admin revenue review stub (cross-tenant list + review action, no payment) | §3 Revenue / Admin | Missing | `src/app/admin/provider-portal/revenue/page.tsx`, `navConfig.ts`, `api.getAllRevenue` | Manual; `admin_revenue_reviewed` | PASS |
+| 31 | Onboarding document management stub (list, version, status, admin approve) | §Data | Missing | `src/app/admin/provider-portal/agencies/[id]/page.tsx` | Manual; `document_reviewed` | PASS |
+| 32 | Referral field-classification map | §7 Security | Missing | `src/lib/referralFields.ts` | `tsc`; import | PASS |
+| 33 | `demo_role_switched` audit naming | §6 Audit | `role_switched` | `src/lib/auth.tsx` | Audit log | PASS |
+| 34 | `verify:fahc` static requirements script | Testing | Missing | `scripts/verify-fahc-requirements.mjs`, `package.json` | `npm run verify:fahc` (12/12) | PASS |
+| 35 | Accessible chart descriptions (reports) | Compliance | Missing | `src/app/provider/(app)/reports/page.tsx` | sr-only descriptions | PASS |
+
 ## PRD items intentionally out of scope (prototype)
 
 - Live Salesforce / Apex / Lightning, Service Cloud, real payments/Autopay charge,

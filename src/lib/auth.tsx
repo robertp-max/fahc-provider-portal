@@ -183,7 +183,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         persist(next)
         logAudit({
           actor: next,
-          action: 'role_switched',
+          action: 'demo_role_switched',
           objectType: 'Session',
           objectId: next.id,
           phiFlag: false,

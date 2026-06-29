@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "check:phi": "node scripts/check-no-phi.mjs",
     "smoke": "node scripts/smoke.mjs",
-    "verify": "node scripts/check-no-phi.mjs && node scripts/smoke.mjs",
+    "verify:fahc": "node scripts/verify-fahc-requirements.mjs",
+    "verify": "node scripts/check-no-phi.mjs && node scripts/smoke.mjs && node scripts/verify-fahc-requirements.mjs",
     "lint": "echo 'lint not configured in this prototype (no eslint installed). Run typecheck + check:phi + smoke and manual review instead.'"
   },
   "dependencies": {

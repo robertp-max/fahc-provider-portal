@@ -88,6 +88,28 @@ export interface AgencyAgreements {
   baa: boolean
 }
 
+export type ListingStatus =
+  | 'Draft'
+  | 'Pending Review'
+  | 'Approved / Live'
+  | 'Rejected'
+  | 'Archived'
+
+export interface ListingHistoryEntry {
+  status: ListingStatus
+  at: string
+  by: string
+  comment?: string
+}
+
+export interface ListingRecord {
+  agencyId: string
+  status: ListingStatus
+  rejectionComment?: string
+  updatedAt: string
+  history: ListingHistoryEntry[]
+}
+
 export interface ProviderUser {
   id: string
   agencyId: string

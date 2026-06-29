@@ -72,3 +72,26 @@ What this branch (`feature/fahc-prd-gap-completion`) added on top of the baselin
 ## Tooling
 - `scripts/check-no-phi.mjs` (`npm run check:phi`) and `scripts/smoke.mjs`
   (`npm run smoke`), aggregated as `npm run verify`.
+
+## Pass 2 — expanded scope
+
+- **Business-listing state engine** (`src/lib/listings.ts`): Draft → Pending Review →
+  Approved/Live | Rejected → (new Draft). Providers submit but cannot publish; internal
+  roles approve or reject (rejection requires a comment); approved listings are read-only
+  until a new draft is opened (also the rollback path). Transitions are audited
+  (`listing_submitted`, `listing_approved`, `listing_rejected`, `listing_reverted_to_draft`).
+  Provider UI: `FAHCListingPanel` on the profile page. Admin UI: review card on
+  `agencies/[id]`.
+- **Provider lifecycle gating** (`ProviderActiveGate` + `isAgencyActive`): referrals,
+  revenue submission, and listing submission are gated on an **Active** agency; otherwise a
+  calm "pending activation" state shows. A public listing is live only when Approved.
+- **Admin revenue review** (`/admin/provider-portal/revenue` + nav): cross-tenant submitted
+  revenue list with a "Mark reviewed" action (`admin_revenue_reviewed`); no payment executed.
+- **Onboarding document stub** on `agencies/[id]`: document list (name/version/timestamp/
+  status) with admin approve (`document_reviewed`); nothing stored.
+- **Referral field-classification map** (`src/lib/referralFields.ts`): every Referral field
+  tagged phi / masked / safe / admin-only — single source of truth for tests & docs.
+- **Audit naming**: `role_switched` → `demo_role_switched`; labels added for all new events.
+- **Accessible chart descriptions**: screen-reader summaries for the report charts.
+- **`verify:fahc`** (`scripts/verify-fahc-requirements.mjs`): 12-point structural + safety
+  checklist; also folded into `npm run verify`.

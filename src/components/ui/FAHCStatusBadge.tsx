@@ -26,6 +26,14 @@ const STATUS_TONES: Record<string, Tone> = {
   Submitted: 'success',
   Draft: 'neutral',
   Pending: 'warning',
+  'Pending Review': 'warning',
+  'Approved / Live': 'success',
+  Rejected: 'danger',
+  Archived: 'neutral',
+  'Pending Activation': 'warning',
+  'Subscribed / Unverified': 'info',
+  'Suspended / Deactivated': 'danger',
+  'In Progress': 'progress',
 }
 
 interface FAHCStatusBadgeProps {

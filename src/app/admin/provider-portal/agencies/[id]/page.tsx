@@ -1,19 +1,25 @@
 'use client'
 
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { useAuth } from '@/lib/auth'
 import { getAllAgencies } from '@/lib/api'
 import { logAudit } from '@/lib/audit'
-import type { AgencyActivationStatus, AgencyAgreements } from '@/lib/types'
+import {
+  getListing,
+  approveListing,
+  rejectListing,
+  LISTING_EVENT,
+} from '@/lib/listings'
+import type { AgencyActivationStatus, AgencyAgreements, ListingRecord } from '@/lib/types'
 import { FAHCCard } from '@/components/ui/FAHCCard'
 import { FAHCStatusBadge } from '@/components/ui/FAHCStatusBadge'
 import { FAHCEmptyState } from '@/components/ui/FAHCEmptyState'
 import { AdminScopeNote } from '@/components/admin/AdminScopeNote'
 import { ProgressBar } from '@/components/charts/Charts'
 import { IconBuilding, IconChevronRight, IconCheckCircle, IconShield } from '@/components/ui/icons'
-import { formatDate } from '@/lib/utils'
+import { formatDate, formatDateTime } from '@/lib/utils'
 
 const ACTIVATION_OPTIONS: AgencyActivationStatus[] = [
   'Subscribed / Unverified',
@@ -28,6 +34,20 @@ const AGREEMENT_LABELS: { key: keyof AgencyAgreements; label: string }[] = [
   { key: 'baa', label: 'Business Associate Agreement (BAA)' },
 ]
 
+interface OnboardingDoc {
+  id: string
+  name: string
+  version: string
+  uploadedAt: string
+  status: 'Pending' | 'Approved'
+}
+
+const SEED_DOCS: OnboardingDoc[] = [
+  { id: 'doc-lic', name: 'Business License', version: 'v1', uploadedAt: '2026-01-12T10:00:00.000Z', status: 'Approved' },
+  { id: 'doc-ref', name: 'Referral Agreement', version: 'v2', uploadedAt: '2026-02-03T14:20:00.000Z', status: 'Pending' },
+  { id: 'doc-baa', name: 'Business Associate Agreement', version: 'v1', uploadedAt: '2026-02-03T14:25:00.000Z', status: 'Pending' },
+]
+
 export default function AdminAgencyDetailPage() {
   const params = useParams<{ id: string }>()
   const { currentUser } = useAuth()
@@ -40,6 +60,17 @@ export default function AdminAgencyDetailPage() {
     agency?.agreements ?? { businessLicense: false, referralAgreement: false, baa: false },
   )
   const [savedAt, setSavedAt] = useState<string | null>(null)
+  const [listing, setListing] = useState<ListingRecord | null>(null)
+  const [rejectComment, setRejectComment] = useState('')
+  const [docs, setDocs] = useState<OnboardingDoc[]>(SEED_DOCS)
+
+  const refreshListing = useCallback(() => setListing(getListing(params.id)), [params.id])
+  useEffect(() => {
+    refreshListing()
+    const h = () => refreshListing()
+    window.addEventListener(LISTING_EVENT, h)
+    return () => window.removeEventListener(LISTING_EVENT, h)
+  }, [refreshListing])
 
   if (!currentUser) return null
   const readOnly = currentUser.role === 'Read-only Auditor'
@@ -59,6 +90,45 @@ export default function AdminAgencyDetailPage() {
   }
 
   const allSigned = Object.values(agreements).every(Boolean)
+
+  const approve = () => {
+    if (readOnly) return
+    approveListing(agency.id, currentUser.name)
+    logAudit({
+      actor: currentUser,
+      action: 'listing_approved',
+      objectType: 'Listing',
+      objectId: agency.id,
+      phiFlag: false,
+      surface: 'admin',
+    })
+  }
+  const reject = () => {
+    if (readOnly || !rejectComment.trim()) return
+    rejectListing(agency.id, currentUser.name, rejectComment.trim())
+    logAudit({
+      actor: currentUser,
+      action: 'listing_rejected',
+      objectType: 'Listing',
+      objectId: agency.id,
+      phiFlag: false,
+      surface: 'admin',
+    })
+    setRejectComment('')
+  }
+  const approveDoc = (id: string) => {
+    if (readOnly) return
+    setDocs((prev) => prev.map((d) => (d.id === id ? { ...d, status: 'Approved' } : d)))
+    logAudit({
+      actor: currentUser,
+      action: 'document_reviewed',
+      objectType: 'DocumentFile',
+      objectId: id,
+      phiFlag: false,
+      surface: 'admin',
+      metadata: { result: 'approved' },
+    })
+  }
 
   const save = () => {
     if (readOnly) return
@@ -181,6 +251,82 @@ export default function AdminAgencyDetailPage() {
           </div>
         </FAHCCard>
       </div>
+
+      {/* Business listing review */}
+      <FAHCCard
+        title="Business listing review"
+        subtitle="Approve or request changes — providers cannot publish directly"
+        action={listing && <FAHCStatusBadge status={listing.status} />}
+      >
+        {listing?.status === 'Pending Review' ? (
+          <div className="space-y-3">
+            <p className="text-sm text-brand-charcoal/70">This listing is awaiting your review.</p>
+            <div className="flex flex-wrap items-center gap-3">
+              <button type="button" onClick={approve} disabled={readOnly} className="fahc-btn-primary">
+                <IconCheckCircle className="h-4 w-4" /> Approve &amp; publish
+              </button>
+            </div>
+            <div>
+              <label htmlFor="reject" className="fahc-label">
+                Request changes (comment required to reject)
+              </label>
+              <textarea
+                id="reject"
+                value={rejectComment}
+                onChange={(e) => setRejectComment(e.target.value)}
+                disabled={readOnly}
+                rows={2}
+                placeholder="Explain what the provider needs to change…"
+                className="fahc-input"
+              />
+              <button
+                type="button"
+                onClick={reject}
+                disabled={readOnly || !rejectComment.trim()}
+                className="fahc-btn-ghost mt-2 border border-brand-softBlue text-rose-600"
+              >
+                Reject with comment
+              </button>
+            </div>
+          </div>
+        ) : (
+          <p className="text-sm text-brand-charcoal/70">
+            {listing?.status === 'Approved / Live'
+              ? 'Listing is approved and live. The provider must open a new draft to make changes.'
+              : `No listing pending review (current status: ${listing?.status ?? '—'}).`}
+          </p>
+        )}
+        {readOnly && (
+          <p className="mt-3 text-xs text-brand-charcoal/50">Read-only role — review actions disabled.</p>
+        )}
+      </FAHCCard>
+
+      {/* Onboarding documents (stub) */}
+      <FAHCCard title="Onboarding documents" subtitle="Mock — no documents are stored or transmitted" flush>
+        <ul className="divide-y divide-brand-lightGray/70">
+          {docs.map((d) => (
+            <li key={d.id} className="flex items-center gap-4 px-5 py-3.5">
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-brand-charcoal">
+                  {d.name} <span className="font-normal text-brand-charcoal/50">· {d.version}</span>
+                </p>
+                <p className="text-xs text-brand-charcoal/55">Uploaded {formatDateTime(d.uploadedAt)}</p>
+              </div>
+              <FAHCStatusBadge status={d.status} />
+              {d.status === 'Pending' && (
+                <button
+                  type="button"
+                  onClick={() => approveDoc(d.id)}
+                  disabled={readOnly}
+                  className="fahc-btn-ghost border border-brand-softBlue py-1.5 text-xs"
+                >
+                  Approve
+                </button>
+              )}
+            </li>
+          ))}
+        </ul>
+      </FAHCCard>
     </div>
   )
 }

@@ -3,6 +3,7 @@
 import { useAuth } from '@/lib/auth'
 import { getMyAgency } from '@/lib/api'
 import { FAHCProfileForm } from '@/components/forms/FAHCProfileForm'
+import { FAHCListingPanel } from '@/components/listing/FAHCListingPanel'
 import { ProgressBar } from '@/components/charts/Charts'
 import { formatDate } from '@/lib/utils'
 
@@ -32,6 +33,8 @@ export default function ProfilePage() {
           </p>
         </div>
       </div>
+
+      <FAHCListingPanel agency={agency} viewer={currentUser} />
 
       <FAHCProfileForm agency={agency} viewer={currentUser} />
     </div>

@@ -54,6 +54,19 @@ All 20 acceptance criteria met:
 - Open browser dev-tools console to watch `[AUDIT]` JSON for login/logout/MFA/role/timeout,
   PHI unmask, outcome updates, autopay, uploads, case create/resolve, activation changes.
 
+## Pass 2 results (expanded scope)
+
+| Command | Result | Notes |
+|---|---|---|
+| `npm run typecheck` | ✅ PASS | clean |
+| `npm run verify` | ✅ PASS | check:phi + smoke + **verify:fahc (12/12)** |
+| `npm run verify:fahc` | ✅ PASS | 12/12 structural + safety checks |
+| `npm run build` | ✅ PASS | 21 routes compiled (added `/admin/provider-portal/revenue`) |
+
+Pass-2 additions verified: listing state engine, provider lifecycle gating, admin
+revenue review, onboarding document stub, referral field-classification map,
+`demo_role_switched` audit, accessible chart descriptions.
+
 ## Not deployed
 
 Per the branch rules, this work is committed to `feature/fahc-prd-gap-completion` only.

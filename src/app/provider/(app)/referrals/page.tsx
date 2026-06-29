@@ -1,14 +1,16 @@
 'use client'
 
 import { useAuth } from '@/lib/auth'
-import { getReferrals } from '@/lib/api'
+import { getReferrals, getMyAgency } from '@/lib/api'
 import { FAHCReferralTable } from '@/components/referrals/FAHCReferralTable'
+import { ProviderActiveGate } from '@/components/provider/ProviderActiveGate'
 
 export default function ReferralsPage() {
   const { currentUser } = useAuth()
   if (!currentUser) return null
 
   const referrals = getReferrals(currentUser)
+  const agency = getMyAgency(currentUser)
 
   return (
     <div className="space-y-6">
@@ -18,7 +20,9 @@ export default function ReferralsPage() {
           Assigned referrals for your agency. Respond promptly to protect your ownership window.
         </p>
       </div>
-      <FAHCReferralTable referrals={referrals} />
+      <ProviderActiveGate agency={agency} feature="Referrals">
+        <FAHCReferralTable referrals={referrals} />
+      </ProviderActiveGate>
     </div>
   )
 }

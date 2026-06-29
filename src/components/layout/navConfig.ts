@@ -32,6 +32,7 @@ export const ADMIN_NAV: NavItem[] = [
   { href: '/admin/provider-portal', label: 'Overview', Icon: IconDashboard, title: 'Admin dashboard' },
   { href: '/admin/provider-portal/agencies', label: 'Agencies', Icon: IconBuilding, title: 'All agencies' },
   { href: '/admin/provider-portal/referrals', label: 'Referrals', Icon: IconReferrals, title: 'All referrals' },
+  { href: '/admin/provider-portal/revenue', label: 'Revenue', Icon: IconRevenue, title: 'Revenue review' },
   { href: '/admin/provider-portal/audit', label: 'Audit Log', Icon: IconShield, title: 'Immutable audit log' },
   { href: '/admin/provider-portal/support', label: 'Support', Icon: IconChat, title: 'Support queues' },
 ]

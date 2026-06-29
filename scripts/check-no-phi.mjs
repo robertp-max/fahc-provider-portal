@@ -17,6 +17,7 @@ const srcDir = path.join(root, 'src')
 const FULLNAME_ALLOWED = [
   'src/lib/types.ts',
   'src/lib/mockData.ts',
+  'src/lib/referralFields.ts', // classification map (marks the field as PHI)
   'src/components/referrals/FAHCReferralDetailPanel.tsx',
 ].map((p) => p.replace(/\\/g, '/'))
 

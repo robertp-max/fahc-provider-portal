@@ -34,6 +34,11 @@ export function isInternalAdmin(user: ProviderUser): boolean {
   return user.role === 'Internal Admin' || user.role === 'Internal Referral Coordinator'
 }
 
+/** Provider lifecycle gate: operational features require an Active agency. */
+export function isAgencyActive(agency?: { activationStatus?: string }): boolean {
+  return agency?.activationStatus === 'Active'
+}
+
 /** Records this user is permitted to see: own agency only, unless internal. */
 function scope<T extends { agencyId: string }>(user: ProviderUser, rows: T[]): T[] {
   if (canAccessAllTenants(user)) return rows
@@ -80,6 +85,11 @@ export function getOutcomeUpdates(user: ProviderUser, referralId: string): Refer
 
 export function getRevenue(user: ProviderUser): RevenueSubmission[] {
   return scope(user, mockRevenue)
+}
+
+/** All revenue across tenants for internal roles; own agency otherwise. */
+export function getAllRevenue(user: ProviderUser): RevenueSubmission[] {
+  return canAccessAllTenants(user) ? mockRevenue : getRevenue(user)
 }
 
 export function getSubmittedRevenueTotal(user: ProviderUser, monthYear?: string): number {

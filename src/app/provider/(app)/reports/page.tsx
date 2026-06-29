@@ -90,14 +90,26 @@ export default function ReportsPage() {
 
       <div className="grid gap-6 lg:grid-cols-2">
         <FAHCCard title="Monthly revenue trend" subtitle="Last 6 months">
+          <p className="sr-only">
+            Bar chart of monthly revenue over the last six months:{' '}
+            {REVENUE_BY_MONTH.map((m) => `${m.label} ${formatCurrency(m.value)}`).join(', ')}.
+          </p>
           <BarChart data={REVENUE_BY_MONTH} barClassName="bg-brand-primary" />
         </FAHCCard>
 
         <FAHCCard title="Referral source breakdown" subtitle="Where your matches originate">
+          <p className="sr-only">
+            Distribution of referral sources:{' '}
+            {SOURCE_BREAKDOWN.map((s) => `${s.label} ${s.value}%`).join(', ')}.
+          </p>
           <DonutChart segments={SOURCE_BREAKDOWN} centerLabel={`${referrals.length}`} centerSub="referrals" />
         </FAHCCard>
 
         <FAHCCard title="Caregiver hours by service" subtitle="Monthly average">
+          <p className="sr-only">
+            Average monthly caregiver hours by service type:{' '}
+            {HOURS_BY_SERVICE.map((h) => `${h.label} ${h.value} hours`).join(', ')}.
+          </p>
           <BarChart data={HOURS_BY_SERVICE} barClassName="bg-brand-gold" />
         </FAHCCard>
 
