@@ -1,12 +1,13 @@
 'use client'
 
+import Link from 'next/link'
 import { useAuth } from '@/lib/auth'
 import { getAllAgencies } from '@/lib/api'
 import { FAHCCard } from '@/components/ui/FAHCCard'
 import { FAHCStatusBadge } from '@/components/ui/FAHCStatusBadge'
 import { AdminScopeNote } from '@/components/admin/AdminScopeNote'
 import { ProgressBar } from '@/components/charts/Charts'
-import { IconMail, IconPhone, IconMapPin } from '@/components/ui/icons'
+import { IconMail, IconPhone, IconMapPin, IconChevronRight } from '@/components/ui/icons'
 
 export default function AdminAgenciesPage() {
   const { currentUser } = useAuth()
@@ -60,6 +61,14 @@ export default function AdminAgenciesPage() {
               </div>
               <ProgressBar value={a.profileCompleteness} />
             </div>
+
+            <Link
+              href={`/admin/provider-portal/agencies/${a.id}`}
+              className="mt-4 inline-flex items-center gap-1 text-sm fahc-link"
+            >
+              Manage activation &amp; agreements
+              <IconChevronRight className="h-4 w-4" />
+            </Link>
           </FAHCCard>
         ))}
       </div>

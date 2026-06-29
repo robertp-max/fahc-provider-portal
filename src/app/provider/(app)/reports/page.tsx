@@ -31,12 +31,16 @@ const SOURCE_BREAKDOWN = [
   { label: 'Other', value: 8, color: '#3A3A3A' },
 ]
 
-// KPI targets from the PRD success metrics.
+// KPI targets from the PRD success metrics (prototype/mock values).
 const KPIS = [
+  { name: 'Provider adoption rate', value: '88%', target: '≥ 85% / 90 days', pct: 88, ok: true },
   { name: 'Referral response time', value: '18 hrs', target: '< 24 hrs', pct: 75, ok: true },
   { name: 'Referral completion rate', value: '62%', target: '≥ 60%', pct: 62, ok: true },
   { name: 'Revenue submission compliance', value: '96%', target: '≥ 95%', pct: 96, ok: true },
+  { name: 'Chat first response time', value: '3 min', target: '< 5 min', pct: 90, ok: true },
   { name: 'Profile data completeness', value: '85%', target: '≥ 90%', pct: 85, ok: false },
+  { name: 'System uptime', value: '99.95%', target: '≥ 99.9%', pct: 100, ok: true },
+  { name: 'Audit trail coverage', value: '100%', target: '100%', pct: 100, ok: true },
 ]
 
 export default function ReportsPage() {
@@ -97,7 +101,7 @@ export default function ReportsPage() {
           <BarChart data={HOURS_BY_SERVICE} barClassName="bg-brand-gold" />
         </FAHCCard>
 
-        <FAHCCard title="KPIs vs. targets">
+        <FAHCCard title="KPIs vs. targets" subtitle="PRD success metrics · prototype (mock) values">
           <ul className="space-y-4">
             {KPIS.map((k) => (
               <li key={k.name}>

@@ -17,8 +17,10 @@ npm run dev
 # open http://localhost:3000  → redirects to /provider/login
 ```
 
-Sign in with **any** username and password (auth is mocked). The seeded session
-is *Sarah Intake* at *Compassionate Bay Care* (`agency-101`).
+**Login is required.** Sign in with **any** username and password (auth is
+mocked — see the note on the login screen). The seeded session is *Sarah Intake*
+at *Compassionate Bay Care* (`agency-101`). Sessions time out after 30 minutes of
+inactivity (with a warning), and you can sign out from the sidebar.
 
 ```bash
 npm run typecheck   # strict TypeScript, no `any` in app logic

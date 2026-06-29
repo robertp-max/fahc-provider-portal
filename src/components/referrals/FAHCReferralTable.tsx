@@ -32,7 +32,7 @@ export function FAHCReferralTable({
 
   const filtered = useMemo(() => {
     // IMPORTANT (Minimum Necessary): this view only ever reads MASKED fields.
-    // It never touches `fullNameEncrypted`.
+    // It never reads the encrypted full-name field.
     const q = query.trim().toLowerCase()
     let rows = referrals.filter((r) => {
       if (status !== 'All' && r.status !== status) return false
@@ -116,8 +116,9 @@ export function FAHCReferralTable({
 
       {/* PHI note */}
       <div className="flex items-center gap-2 text-xs text-brand-charcoal/60">
-        <PhiBadge /> Names and contact details are masked in list view (Minimum Necessary). Open a
-        referral to unlock authorized PHI — each access is audited.
+        <PhiBadge /> Names and contact details are masked in list view (Minimum Necessary); the
+        &ldquo;Looking for&rdquo; snippet is truncated. Open a referral to unlock authorized PHI —
+        each access is audited.
       </div>
 
       {/* Table */}
@@ -130,7 +131,7 @@ export function FAHCReferralTable({
       ) : (
         <div className="fahc-surface overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[760px] text-left text-sm">
+            <table className="w-full min-w-[900px] text-left text-sm">
               <thead>
                 <tr className="border-b border-brand-lightGray/70 bg-brand-paleBlue/40 text-xs uppercase tracking-wide text-brand-charcoal/60">
                   <th className="px-4 py-3 font-semibold">Referral</th>
@@ -138,6 +139,7 @@ export function FAHCReferralTable({
                   {showAgency && <th className="px-4 py-3 font-semibold">Agency</th>}
                   <th className="px-4 py-3 font-semibold">Category</th>
                   <th className="px-4 py-3 font-semibold">Location</th>
+                  <th className="hidden px-4 py-3 font-semibold lg:table-cell">Looking&nbsp;for</th>
                   <th className="hidden px-4 py-3 font-semibold xl:table-cell">Contact</th>
                   <th className="px-4 py-3 font-semibold">Status</th>
                   <th className="px-4 py-3 font-semibold">Assigned</th>
@@ -170,6 +172,11 @@ export function FAHCReferralTable({
                     )}
                     <td className="px-4 py-3 text-brand-charcoal/80">{r.category}</td>
                     <td className="px-4 py-3 text-brand-charcoal/80">{r.locationZip}</td>
+                    <td className="hidden max-w-[15rem] px-4 py-3 text-xs text-brand-charcoal/60 lg:table-cell">
+                      <span className="block truncate">
+                        {r.message.length > 80 ? `${r.message.slice(0, 80)}…` : r.message}
+                      </span>
+                    </td>
                     <td className="hidden px-4 py-3 text-xs text-brand-charcoal/60 xl:table-cell">
                       <div>{r.emailMasked}</div>
                       <div>{r.phoneMasked}</div>

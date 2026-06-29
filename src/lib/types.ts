@@ -50,6 +50,42 @@ export interface Agency {
   profileCompleteness: number
   lastVerifiedAt?: string
   lastVerifiedBy?: string
+  // --- Extended profile (PRD §4) ---
+  operationalDetails?: string
+  capacityNotes?: string
+  intakeProcess?: string
+  businessHoursByDay?: DayHours[]
+  // --- Internal activation (admin only) ---
+  activationStatus?: AgencyActivationStatus
+  agreements?: AgencyAgreements
+}
+
+export type DayOfWeek =
+  | 'Monday'
+  | 'Tuesday'
+  | 'Wednesday'
+  | 'Thursday'
+  | 'Friday'
+  | 'Saturday'
+  | 'Sunday'
+
+export interface DayHours {
+  day: DayOfWeek
+  open: string // "HH:MM"
+  close: string // "HH:MM"
+  closed: boolean
+}
+
+export type AgencyActivationStatus =
+  | 'Subscribed / Unverified'
+  | 'Pending Activation'
+  | 'Active'
+  | 'Suspended / Deactivated'
+
+export interface AgencyAgreements {
+  businessLicense: boolean
+  referralAgreement: boolean
+  baa: boolean
 }
 
 export interface ProviderUser {
@@ -144,8 +180,12 @@ export interface AuditEvent {
   ip?: string
   userAgent?: string
   phiFlag: boolean
+  /** Which surface generated the event — required context for compliance review. */
+  surface: AuditSurface
   metadata?: Record<string, unknown>
 }
+
+export type AuditSurface = 'provider' | 'admin' | 'auth' | 'system'
 
 export interface DocumentFile {
   id: string
@@ -160,4 +200,20 @@ export interface DocumentFile {
   uploadedAt: string
   phiFlag: boolean
   hash: string
+}
+
+export type SupportCaseStatus = 'Open' | 'In Progress' | 'Resolved'
+
+/** Support case created from a chat thread (Service Cloud case stub — local only). */
+export interface SupportCase {
+  id: string
+  agencyId: string
+  threadId: string
+  subject: string
+  category: string
+  status: SupportCaseStatus
+  createdBy: string
+  createdAt: string
+  resolvedAt?: string
+  resolvedBy?: string
 }

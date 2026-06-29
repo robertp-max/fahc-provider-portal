@@ -28,6 +28,7 @@ export function FAHCConfirmNoChangesButton({ viewer, objectId }: Props) {
       objectType: 'Agency',
       objectId,
       phiFlag: false,
+      surface: 'provider',
       metadata: { verifiedBy: viewer.name },
     })
   }

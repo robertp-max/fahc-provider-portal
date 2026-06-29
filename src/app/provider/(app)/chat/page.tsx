@@ -1,19 +1,59 @@
 'use client'
 
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useAuth } from '@/lib/auth'
 import { getSupportThreads } from '@/lib/api'
+import { createCase, getCasesForThread, CASE_EVENT } from '@/lib/cases'
+import { logAudit } from '@/lib/audit'
+import type { SupportCase } from '@/lib/types'
 import { FAHCChatThread } from '@/components/chat/FAHCChatThread'
 import { FAHCStatusBadge } from '@/components/ui/FAHCStatusBadge'
+import { IconPlus, IconCheckCircle } from '@/components/ui/icons'
 import { cn, relativeTime } from '@/lib/utils'
 
 export default function ChatPage() {
   const { currentUser } = useAuth()
   const threads = currentUser ? getSupportThreads(currentUser) : []
   const [activeId, setActiveId] = useState(threads[0]?.id ?? '')
+  const [cases, setCases] = useState<SupportCase[]>([])
+
+  const active = threads.find((t) => t.id === activeId) ?? threads[0]
+
+  const refreshCases = useCallback(() => {
+    if (!currentUser || !active) return setCases([])
+    setCases(getCasesForThread(currentUser, active.id))
+  }, [currentUser, active])
+
+  useEffect(() => {
+    refreshCases()
+    const handler = () => refreshCases()
+    window.addEventListener(CASE_EVENT, handler)
+    return () => window.removeEventListener(CASE_EVENT, handler)
+  }, [refreshCases])
 
   if (!currentUser) return null
-  const active = threads.find((t) => t.id === activeId) ?? threads[0]
+
+  const openCase = cases.find((c) => c.status !== 'Resolved')
+
+  const handleCreateCase = () => {
+    if (!active || openCase) return
+    const created = createCase({
+      agencyId: currentUser.agencyId,
+      threadId: active.id,
+      subject: active.subject,
+      category: active.category,
+      createdBy: currentUser.name,
+    })
+    logAudit({
+      actor: currentUser,
+      action: 'support_case_created',
+      objectType: 'SupportCase',
+      objectId: created.id,
+      phiFlag: false,
+      surface: 'provider',
+      metadata: { category: active.category, threadId: active.id },
+    })
+  }
 
   return (
     <div className="space-y-6">
@@ -42,9 +82,7 @@ export default function ChatPage() {
                   )}
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span className="truncate text-sm font-semibold text-brand-charcoal">
-                      {t.subject}
-                    </span>
+                    <span className="truncate text-sm font-semibold text-brand-charcoal">{t.subject}</span>
                     <FAHCStatusBadge status={t.status} dot={false} />
                   </div>
                   <span className="truncate text-xs text-brand-charcoal/55">
@@ -57,12 +95,42 @@ export default function ChatPage() {
         </div>
 
         {/* Active thread */}
-        <div className="fahc-surface overflow-hidden lg:col-span-2">
-          {active ? (
-            <FAHCChatThread thread={active} viewerName={currentUser.name} />
-          ) : (
-            <p className="p-6 text-sm text-brand-charcoal/60">No conversations yet.</p>
+        <div className="space-y-3 lg:col-span-2">
+          {active && (
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-brand-lightGray/70 bg-white px-4 py-2.5">
+              {openCase ? (
+                <span className="inline-flex items-center gap-1.5 text-sm text-brand-charcoal/70">
+                  <IconCheckCircle className="h-4 w-4 text-emerald-600" />
+                  Support case <span className="font-semibold">{openCase.id}</span>
+                  <FAHCStatusBadge status={openCase.status} dot={false} />
+                </span>
+              ) : cases.length > 0 ? (
+                <span className="text-sm text-brand-charcoal/60">
+                  Previous case resolved — you can open a new one if needed.
+                </span>
+              ) : (
+                <span className="text-sm text-brand-charcoal/60">
+                  Need formal tracking? Create a support case from this thread.
+                </span>
+              )}
+              <button
+                type="button"
+                onClick={handleCreateCase}
+                disabled={!!openCase}
+                className="fahc-btn-ghost border border-brand-softBlue py-2 text-xs"
+              >
+                <IconPlus className="h-4 w-4" /> Create support case
+              </button>
+            </div>
           )}
+
+          <div className="fahc-surface overflow-hidden">
+            {active ? (
+              <FAHCChatThread thread={active} viewer={currentUser} />
+            ) : (
+              <p className="p-6 text-sm text-brand-charcoal/60">No conversations yet.</p>
+            )}
+          </div>
         </div>
       </div>
     </div>

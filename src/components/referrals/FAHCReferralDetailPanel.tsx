@@ -16,6 +16,7 @@ import {
   IconCheckCircle,
   IconChevronRight,
   IconShield,
+  IconBuilding,
 } from '@/components/ui/icons'
 import { cn, formatDate, formatDateTime, makeId } from '@/lib/utils'
 
@@ -31,9 +32,19 @@ interface Props {
   referral: Referral
   initialUpdates: ReferralOutcomeUpdate[]
   viewer: ProviderUser
+  /** Which surface is rendering this panel (affects audit + navigation). */
+  surface?: 'provider' | 'admin'
+  /** Read-only viewers (e.g. Read-only Auditor) can view but never edit. */
+  readOnly?: boolean
 }
 
-export function FAHCReferralDetailPanel({ referral, initialUpdates, viewer }: Props) {
+export function FAHCReferralDetailPanel({
+  referral,
+  initialUpdates,
+  viewer,
+  surface = 'provider',
+  readOnly = false,
+}: Props) {
   const [status, setStatus] = useState(referral.status)
   const [updates, setUpdates] = useState<ReferralOutcomeUpdate[]>(initialUpdates)
   const [revealed, setRevealed] = useState(false)
@@ -45,7 +56,8 @@ export function FAHCReferralDetailPanel({ referral, initialUpdates, viewer }: Pr
 
   const admin = isInternalAdmin(viewer)
   const locked = referral.locked || FINAL_STATUSES.includes(status)
-  const canEdit = !locked || admin
+  const canEdit = (!locked || admin) && !readOnly
+  const backHref = surface === 'admin' ? '/admin/provider-portal/referrals' : '/provider/referrals'
 
   // Audit the detail view exactly once per mount.
   const viewLogged = useRef(false)
@@ -58,9 +70,10 @@ export function FAHCReferralDetailPanel({ referral, initialUpdates, viewer }: Pr
       objectType: 'Referral',
       objectId: referral.id,
       phiFlag: false,
+      surface,
       metadata: { status: referral.status },
     })
-  }, [referral.id, referral.status, viewer])
+  }, [referral.id, referral.status, viewer, surface])
 
   const handleReveal = () => {
     if (revealed) {
@@ -74,7 +87,8 @@ export function FAHCReferralDetailPanel({ referral, initialUpdates, viewer }: Pr
       objectType: 'Referral',
       objectId: referral.id,
       phiFlag: true,
-      metadata: { reason: 'Authorized provider viewed full identity' },
+      surface,
+      metadata: { reason: 'Authorized viewer revealed full identity' },
     })
   }
 
@@ -85,6 +99,7 @@ export function FAHCReferralDetailPanel({ referral, initialUpdates, viewer }: Pr
       setError('Please add a note describing this update before saving.')
       return
     }
+    const wasLocked = locked
     const now = new Date().toISOString()
     const update: ReferralOutcomeUpdate = {
       id: makeId('upd'),
@@ -100,12 +115,25 @@ export function FAHCReferralDetailPanel({ referral, initialUpdates, viewer }: Pr
     setStatus(outcome)
     setNotes('')
     setSavedAt(now)
+    // If an internal admin edits a locked referral, record the override explicitly.
+    if (wasLocked && admin) {
+      logAudit({
+        actor: viewer,
+        action: 'admin_locked_referral_override',
+        objectType: 'Referral',
+        objectId: referral.id,
+        phiFlag: false,
+        surface: 'admin',
+        metadata: { outcome, previousStatus: status },
+      })
+    }
     logAudit({
       actor: viewer,
       action: 'referral_outcome_updated',
       objectType: 'Referral',
       objectId: referral.id,
       phiFlag: false,
+      surface,
       metadata: { outcome, previousStatus: status },
     })
   }
@@ -114,10 +142,7 @@ export function FAHCReferralDetailPanel({ referral, initialUpdates, viewer }: Pr
     <div className="space-y-6">
       {/* Breadcrumb + header */}
       <div>
-        <Link
-          href="/provider/referrals"
-          className="inline-flex items-center gap-1 text-sm fahc-link"
-        >
+        <Link href={backHref} className="inline-flex items-center gap-1 text-sm fahc-link">
           <IconChevronRight className="h-4 w-4 rotate-180" /> Back to referrals
         </Link>
         <div className="mt-2 flex flex-wrap items-center gap-3">
@@ -130,9 +155,19 @@ export function FAHCReferralDetailPanel({ referral, initialUpdates, viewer }: Pr
               <IconLock className="h-3.5 w-3.5" /> Locked
             </span>
           )}
+          {readOnly && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-brand-paleBlue px-2.5 py-0.5 text-xs font-semibold text-brand-primary">
+              <IconEye className="h-3.5 w-3.5" /> Read-only
+            </span>
+          )}
         </div>
-        <p className="mt-1 text-sm text-brand-charcoal/60">
-          {referral.id} · Assigned {formatDate(referral.assignmentDate)}
+        <p className="mt-1 flex flex-wrap items-center gap-x-2 text-sm text-brand-charcoal/60">
+          <span>{referral.id} · Assigned {formatDate(referral.assignmentDate)}</span>
+          {surface === 'admin' && (
+            <span className="inline-flex items-center gap-1 rounded bg-brand-paleBlue px-1.5 py-0.5 text-xs font-medium text-brand-primary">
+              <IconBuilding className="h-3 w-3" /> {referral.agencyId}
+            </span>
+          )}
         </p>
       </div>
 
@@ -191,11 +226,17 @@ export function FAHCReferralDetailPanel({ referral, initialUpdates, viewer }: Pr
 
           {/* Outcome update */}
           <FAHCCard title="Update referral outcome">
-            {!canEdit && (
+            {readOnly && (
+              <div className="mb-4 flex items-start gap-2 rounded-xl border border-brand-softBlue bg-brand-paleBlue/50 px-3 py-2.5 text-sm text-brand-primary">
+                <IconEye className="mt-0.5 h-4 w-4 shrink-0" />
+                Read-only role — you can review this referral and its audit trail, but cannot edit it.
+              </div>
+            )}
+            {!readOnly && !canEdit && (
               <div className="mb-4 flex items-start gap-2 rounded-xl border border-brand-lightGray bg-brand-lightGray/40 px-3 py-2.5 text-sm text-brand-charcoal">
                 <IconLock className="mt-0.5 h-4 w-4 shrink-0" />
-                This referral has reached a final status and is locked for editing. Contact your Care
-                Indeed coordinator via{' '}
+                This referral has reached a final status and is locked for editing. Contact your Find A
+                Home Care coordinator via{' '}
                 <Link href="/provider/chat" className="fahc-link">
                   Support Chat
                 </Link>{' '}

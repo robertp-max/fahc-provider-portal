@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { FAHCSideNav } from './FAHCSideNav'
 import { FAHCTopNav } from './FAHCTopNav'
+import { SessionTimeoutWarning } from './SessionTimeoutWarning'
 import type { NavItem } from './navConfig'
 
 interface FAHCShellProps {
@@ -31,6 +32,7 @@ export function FAHCShell({ children, items, context, variant = 'provider' }: FA
           <div className="mx-auto w-full max-w-6xl">{children}</div>
         </main>
       </div>
+      <SessionTimeoutWarning />
     </div>
   )
 }

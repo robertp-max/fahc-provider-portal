@@ -1,4 +1,4 @@
-import { AuditEvent, ProviderUser, INTERNAL_ROLES } from './types'
+import { AuditEvent, AuditSurface, ProviderUser, INTERNAL_ROLES } from './types'
 import { mockAuditEvents } from './mockData'
 import { makeId } from './utils'
 
@@ -48,7 +48,64 @@ export interface LogAuditInput {
   objectType: string
   objectId: string
   phiFlag?: boolean
+  /** Required: which surface generated the event (compliance context). */
+  surface: AuditSurface
   metadata?: Record<string, unknown>
+}
+
+// ---------------------------------------------------------------------------
+// Metadata sanitization — defence-in-depth so PHI can never reach the audit
+// trail (console, localStorage, or UI), even if a caller passes it by mistake.
+// ---------------------------------------------------------------------------
+
+// Substrings that flag a metadata KEY as PHI-bearing → dropped entirely.
+const UNSAFE_KEY_PATTERNS = [
+  'name',
+  'email',
+  'phone',
+  'message',
+  'note',
+  'body',
+  'address',
+  'contact',
+  'client',
+  'patient',
+  'ssn',
+  'dob',
+  'birth',
+  'diagnos',
+  'fullname',
+]
+
+const MAX_VALUE_LEN = 80
+
+export function isSafeMetadataKey(key: string): boolean {
+  const k = key.toLowerCase()
+  return !UNSAFE_KEY_PATTERNS.some((p) => k.includes(p))
+}
+
+/** Return a copy of metadata with PHI-risk keys removed and values bounded. */
+export function sanitizeMetadata(
+  metadata?: Record<string, unknown>,
+): Record<string, unknown> | undefined {
+  if (!metadata) return undefined
+  const out: Record<string, unknown> = {}
+  for (const [key, value] of Object.entries(metadata)) {
+    if (!isSafeMetadataKey(key)) continue
+    if (value == null) continue
+    if (typeof value === 'number' || typeof value === 'boolean') {
+      out[key] = value
+    } else if (typeof value === 'string') {
+      // Bound length so no free-text PHI can ride along in a "safe" key.
+      out[key] = value.length > MAX_VALUE_LEN ? `${value.slice(0, MAX_VALUE_LEN)}…` : value
+    } else if (Array.isArray(value)) {
+      out[key] = value
+        .filter((v) => typeof v === 'string' || typeof v === 'number')
+        .map((v) => String(v).slice(0, MAX_VALUE_LEN))
+    }
+    // objects and other types are intentionally dropped
+  }
+  return Object.keys(out).length ? out : undefined
 }
 
 /** Append an immutable audit event, mirror it to the console, and notify the UI. */
@@ -67,7 +124,8 @@ export function logAudit(input: LogAuditInput): AuditEvent {
     ip: '203.0.113.24', // mock — real client IP is resolved server-side in prod
     userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'server',
     phiFlag: input.phiFlag ?? false,
-    metadata: input.metadata,
+    surface: input.surface,
+    metadata: sanitizeMetadata(input.metadata),
   }
 
   store = [event, ...store]

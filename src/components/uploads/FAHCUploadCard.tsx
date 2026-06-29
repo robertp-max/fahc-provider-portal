@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { ProviderUser } from '@/lib/types'
 import { logAudit } from '@/lib/audit'
 import { PhiWarning } from '@/components/ui/PhiBadge'
@@ -9,7 +9,7 @@ import { formatBytes } from '@/lib/utils'
 
 interface UploadedItem {
   id: string
-  name: string
+  label: string // redacted display label — never the raw filename
   size: number
   url?: string
   isImage: boolean
@@ -24,39 +24,72 @@ interface Props {
   accept?: string
 }
 
+const MAX_BYTES = 10 * 1024 * 1024 // 10 MB per file
+const ALLOWED = ['image/png', 'image/jpeg', 'image/webp', 'application/pdf']
+
 /** Generic file upload card with previews and clear/delete (mock — no real upload). */
 export function FAHCUploadCard({
   viewer,
   agencyId,
   title = 'Photos & documents',
   phiWarning = true,
-  accept = 'image/*,application/pdf',
+  accept = 'image/png,image/jpeg,image/webp,application/pdf',
 }: Props) {
   const [items, setItems] = useState<UploadedItem[]>([])
+  const [error, setError] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const itemsRef = useRef<UploadedItem[]>([])
+  itemsRef.current = items
+
+  // Revoke all outstanding object URLs on unmount.
+  useEffect(() => {
+    return () => {
+      itemsRef.current.forEach((i) => i.url && URL.revokeObjectURL(i.url))
+    }
+  }, [])
 
   const onFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? [])
     if (!files.length) return
-    const next: UploadedItem[] = files.map((f) => {
+    setError(null)
+
+    const accepted: UploadedItem[] = []
+    let imgCount = items.filter((i) => i.isImage).length
+    let docCount = items.filter((i) => !i.isImage).length
+    const rejected: string[] = []
+
+    for (const f of files) {
+      if (!ALLOWED.includes(f.type)) {
+        rejected.push('unsupported type')
+        continue
+      }
+      if (f.size > MAX_BYTES) {
+        rejected.push(`over ${formatBytes(MAX_BYTES)}`)
+        continue
+      }
       const isImage = f.type.startsWith('image/')
+      const label = isImage ? `Image ${++imgCount}` : `Document ${++docCount}`
       logAudit({
         actor: viewer,
         action: 'document_uploaded',
         objectType: 'DocumentFile',
         objectId: agencyId,
         phiFlag: phiWarning,
-        metadata: { fileName: f.name, size: f.size, mimeType: f.type },
+        surface: 'provider',
+        // Safe metadata only — no raw filename (may contain PHI).
+        metadata: { category: isImage ? 'image' : 'document', mimeType: f.type, size: f.size },
       })
-      return {
-        id: `${f.name}-${f.size}-${f.lastModified}`,
-        name: f.name,
+      accepted.push({
+        id: `${label}-${f.size}-${f.lastModified}`,
+        label,
         size: f.size,
         url: isImage ? URL.createObjectURL(f) : undefined,
         isImage,
-      }
-    })
-    setItems((prev) => [...prev, ...next])
+      })
+    }
+
+    if (rejected.length) setError(`${rejected.length} file(s) skipped (${rejected.join(', ')}).`)
+    if (accepted.length) setItems((prev) => [...prev, ...accepted])
     if (inputRef.current) inputRef.current.value = ''
   }
 
@@ -81,7 +114,12 @@ export function FAHCUploadCard({
         </button>
       </div>
 
-      {phiWarning && <PhiWarning>Attachments may contain PHI. Upload only what is necessary; access is audited.</PhiWarning>}
+      {phiWarning && (
+        <PhiWarning>
+          Attachments may contain PHI. Upload only what is necessary; filenames are redacted and
+          access is audited.
+        </PhiWarning>
+      )}
 
       <button
         type="button"
@@ -90,7 +128,7 @@ export function FAHCUploadCard({
       >
         <IconUpload className="h-6 w-6 text-brand-primary" />
         <span className="text-sm font-medium text-brand-charcoal">Click to upload</span>
-        <span className="text-xs text-brand-charcoal/55">Images or PDF</span>
+        <span className="text-xs text-brand-charcoal/55">PNG, JPG, WebP or PDF · up to 10 MB each</span>
       </button>
 
       <input
@@ -103,6 +141,8 @@ export function FAHCUploadCard({
         aria-label="Upload files"
       />
 
+      {error && <p className="text-xs text-rose-600">{error}</p>}
+
       {items.length > 0 && (
         <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {items.map((it) => (
@@ -110,20 +150,18 @@ export function FAHCUploadCard({
               <div className="grid h-24 place-items-center bg-brand-paleBlue/50">
                 {it.isImage && it.url ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={it.url} alt={it.name} className="h-full w-full object-cover" />
+                  <img src={it.url} alt={it.label} className="h-full w-full object-cover" />
                 ) : (
                   <span className="text-xs font-semibold uppercase text-brand-charcoal/50">PDF</span>
                 )}
               </div>
               <div className="flex items-center justify-between gap-1 px-2 py-1.5">
-                <span className="truncate text-[11px] text-brand-charcoal/70" title={it.name}>
-                  {it.name}
-                </span>
+                <span className="truncate text-[11px] text-brand-charcoal/70">{it.label}</span>
                 <button
                   type="button"
                   onClick={() => remove(it.id)}
                   className="shrink-0 rounded p-1 text-rose-500 hover:bg-rose-50"
-                  aria-label={`Remove ${it.name}`}
+                  aria-label={`Remove ${it.label}`}
                 >
                   <IconTrash className="h-3.5 w-3.5" />
                 </button>

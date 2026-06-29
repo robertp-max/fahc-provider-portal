@@ -12,6 +12,8 @@ interface TagFieldProps {
   placeholder?: string
   disabled?: boolean
   hint?: string
+  /** When true, only preset suggestions can be toggled — no free-text entry. */
+  presetOnly?: boolean
 }
 
 /** Chip-style multi-value input with optional preset suggestions. */
@@ -23,6 +25,7 @@ export function TagField({
   placeholder = 'Add and press Enter',
   disabled,
   hint,
+  presetOnly = false,
 }: TagFieldProps) {
   const [draft, setDraft] = useState('')
 
@@ -63,7 +66,7 @@ export function TagField({
             )}
           </span>
         ))}
-        {!disabled && (
+        {!disabled && !presetOnly && (
           <input
             type="text"
             value={draft}
@@ -77,6 +80,9 @@ export function TagField({
             placeholder={placeholder}
             className="flex-1 border-0 p-1 text-sm focus:ring-0"
           />
+        )}
+        {!disabled && presetOnly && values.length === 0 && (
+          <span className="p-1 text-sm text-brand-charcoal/40">Select from options below</span>
         )}
       </div>
       {remaining.length > 0 && !disabled && (

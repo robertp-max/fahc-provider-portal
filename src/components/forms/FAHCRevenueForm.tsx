@@ -4,8 +4,8 @@ import { useRef, useState } from 'react'
 import type { Referral, ProviderUser, RevenueSubmission } from '@/lib/types'
 import { logAudit } from '@/lib/audit'
 import { FAHCCard } from '@/components/ui/FAHCCard'
-import { IconCheckCircle, IconClock, IconRevenue } from '@/components/ui/icons'
-import { cn, formatTime, makeId } from '@/lib/utils'
+import { IconCheckCircle, IconClock, IconRevenue, IconShield } from '@/components/ui/icons'
+import { cn, formatCurrency, formatTime, makeId } from '@/lib/utils'
 
 type SaveState = 'idle' | 'saving' | 'saved'
 
@@ -18,6 +18,14 @@ interface Props {
 
 const PAYMENT_MODE_FALLBACK = ['Autopay', 'Credit Card', 'ACH', 'Check']
 
+// Structured, PHI-safe categories replace the old free-text "notes" field.
+const NOTE_CATEGORIES = [
+  'Monthly reconciliation',
+  'Correction',
+  'Autopay verification',
+  'Other non-PHI administrative note',
+]
+
 export function FAHCRevenueForm({ referrals, paymentMethods, viewer, onSubmitted }: Props) {
   const modes = paymentMethods.length ? paymentMethods : PAYMENT_MODE_FALLBACK
 
@@ -25,7 +33,7 @@ export function FAHCRevenueForm({ referrals, paymentMethods, viewer, onSubmitted
   const [monthYear, setMonthYear] = useState('2026-06')
   const [amount, setAmount] = useState('')
   const [paymentMode, setPaymentMode] = useState(modes[0] ?? 'Autopay')
-  const [notes, setNotes] = useState('')
+  const [noteCategory, setNoteCategory] = useState(NOTE_CATEGORIES[0])
 
   const [saveState, setSaveState] = useState<SaveState>('idle')
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null)
@@ -34,6 +42,7 @@ export function FAHCRevenueForm({ referrals, paymentMethods, viewer, onSubmitted
   const savingTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const isAutopay = paymentMode === 'Autopay'
+  const amountNum = Number(amount) || 0
 
   // Autosave: triggered on blur of any field that carries meaningful content.
   const autosave = (field: string) => {
@@ -51,12 +60,9 @@ export function FAHCRevenueForm({ referrals, paymentMethods, viewer, onSubmitted
         objectType: 'RevenueSubmission',
         objectId: referralId || 'draft',
         phiFlag: false,
-        metadata: {
-          field,
-          monthYear,
-          amount: Number(amount) || 0,
-          paymentMode,
-        },
+        surface: 'provider',
+        // field NAME only (no value), amount + mode are non-PHI numerics/enums
+        metadata: { field, monthYear, amount: amountNum, paymentMode },
       })
     }, 600)
   }
@@ -66,8 +72,8 @@ export function FAHCRevenueForm({ referrals, paymentMethods, viewer, onSubmitted
     setError(null)
     if (!referralId) return setError('Select the referral this revenue relates to.')
     if (!monthYear) return setError('Select the month and year.')
-    const amt = Number(amount)
-    if (!amount || Number.isNaN(amt) || amt <= 0) return setError('Enter a valid revenue amount.')
+    if (!amount || Number.isNaN(amountNum) || amountNum <= 0)
+      return setError('Enter a valid revenue amount.')
 
     const now = new Date().toISOString()
     const submission: RevenueSubmission = {
@@ -75,9 +81,10 @@ export function FAHCRevenueForm({ referrals, paymentMethods, viewer, onSubmitted
       agencyId: viewer.agencyId,
       referralId,
       monthYear,
-      revenueAmount: amt,
+      revenueAmount: amountNum,
       paymentMode,
-      supportingNotes: notes.trim() || undefined,
+      // Structured category only — never free text, so no PHI can be stored.
+      supportingNotes: noteCategory,
       status: 'Submitted',
       autosavedAt: lastSavedAt ?? undefined,
       submittedAt: now,
@@ -91,8 +98,20 @@ export function FAHCRevenueForm({ referrals, paymentMethods, viewer, onSubmitted
       objectType: 'RevenueSubmission',
       objectId: submission.id,
       phiFlag: false,
-      metadata: { monthYear, amount: amt, paymentMode },
+      surface: 'provider',
+      metadata: { monthYear, amount: amountNum, paymentMode },
     })
+    if (isAutopay) {
+      logAudit({
+        actor: viewer,
+        action: 'autopay_revenue_recorded',
+        objectType: 'RevenueSubmission',
+        objectId: submission.id,
+        phiFlag: false,
+        surface: 'provider',
+        metadata: { monthYear, amount: amountNum },
+      })
+    }
     onSubmitted?.(submission)
   }
 
@@ -171,39 +190,58 @@ export function FAHCRevenueForm({ referrals, paymentMethods, viewer, onSubmitted
           </div>
         </div>
 
+        {/* Structured (PHI-safe) supporting note */}
         <div>
-          <label htmlFor="rev-notes" className="fahc-label">
-            Supporting notes <span className="font-normal text-brand-charcoal/50">(optional)</span>
+          <label htmlFor="rev-note" className="fahc-label">
+            Supporting note <span className="font-normal text-brand-charcoal/50">(category)</span>
           </label>
-          <textarea
-            id="rev-notes"
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            onBlur={() => autosave('supportingNotes')}
-            rows={2}
-            placeholder="Context for this revenue entry…"
+          <select
+            id="rev-note"
+            value={noteCategory}
+            onChange={(e) => setNoteCategory(e.target.value)}
+            onBlur={() => autosave('supportingNoteCategory')}
             className="fahc-input"
-          />
+          >
+            {NOTE_CATEGORIES.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+          <p className="mt-1.5 flex items-start gap-1.5 text-xs text-brand-charcoal/55">
+            <IconShield className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand-darkGold" />
+            Do not enter client names, phone numbers, email addresses, diagnoses, or care details.
+            Notes are limited to fixed categories to keep this surface PHI-free.
+          </p>
         </div>
 
-        <div
-          className={cn(
-            'flex items-start gap-2 rounded-xl px-3 py-2.5 text-sm',
-            isAutopay
-              ? 'bg-emerald-50 text-emerald-800'
-              : 'bg-brand-paleBlue/60 text-brand-charcoal',
-          )}
-        >
-          <IconRevenue className="mt-0.5 h-4 w-4 shrink-0" />
-          {isAutopay ? (
-            <span>
-              <strong>Autopay selected.</strong> No physical proof of revenue is required — Autopay
-              pulls from these monthly fields to charge the agency automatically.
-            </span>
-          ) : (
+        {/* Autopay mocked workflow */}
+        {isAutopay ? (
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
+            <p className="flex items-center gap-1.5 font-semibold">
+              <IconRevenue className="h-4 w-4" /> Autopay — mocked charge summary
+            </p>
+            <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-emerald-800">
+              <dt className="text-emerald-700/80">Referral</dt>
+              <dd className="text-right font-medium">{referralId || '—'}</dd>
+              <dt className="text-emerald-700/80">Month / Year</dt>
+              <dd className="text-right font-medium">{monthYear || '—'}</dd>
+              <dt className="text-emerald-700/80">Revenue amount</dt>
+              <dd className="text-right font-medium">{formatCurrency(amountNum)}</dd>
+              <dt className="text-emerald-700/80">Calculated charge basis</dt>
+              <dd className="text-right font-medium">{formatCurrency(amountNum)}</dd>
+            </dl>
+            <p className="mt-2 text-xs text-emerald-700/80">
+              No upload required. <strong>This is a prototype calculation only</strong> — no payment
+              is executed and no agency is charged.
+            </p>
+          </div>
+        ) : (
+          <div className="flex items-start gap-2 rounded-xl bg-brand-paleBlue/60 px-3 py-2.5 text-sm text-brand-charcoal">
+            <IconRevenue className="mt-0.5 h-4 w-4 shrink-0" />
             <span>Submit the revenue figure for reconciliation. No file upload required.</span>
-          )}
-        </div>
+          </div>
+        )}
 
         {error && <p className="text-sm text-rose-600">{error}</p>}
         {submitted && (

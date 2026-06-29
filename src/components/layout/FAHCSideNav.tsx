@@ -110,7 +110,7 @@ export function FAHCSideNav({ items, open, onClose, context, variant = 'provider
               </div>
               <button
                 type="button"
-                onClick={logout}
+                onClick={() => logout()}
                 className="rounded-lg p-2 text-white/60 hover:bg-white/10 hover:text-white"
                 aria-label="Log out"
                 title="Log out"

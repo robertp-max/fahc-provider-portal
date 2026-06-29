@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 
-// Login is not required — the portal root opens straight to the dashboard.
+// The portal root forwards to the secure provider login.
 export default function Home() {
-  redirect('/provider/dashboard')
+  redirect('/provider/login')
 }

@@ -21,8 +21,8 @@ export default function AdminReferralsPage() {
 
       <AdminScopeNote viewer={currentUser} />
 
-      {/* Detail view reuses the provider panel (internal roles can open any tenant). */}
-      <FAHCReferralTable referrals={referrals} basePath="/provider/referrals" showAgency />
+      {/* Rows open the admin-aware detail route (internal roles can open any tenant). */}
+      <FAHCReferralTable referrals={referrals} basePath="/admin/provider-portal/referrals" showAgency />
     </div>
   )
 }

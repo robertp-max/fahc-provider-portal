@@ -2,7 +2,12 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import type { AuditEvent, ProviderUser } from '@/lib/types'
-import { AUDIT_EVENT, getAuditEvents, getAuditEventsForObject } from '@/lib/audit'
+import {
+  AUDIT_EVENT,
+  getAuditEvents,
+  getAuditEventsForObject,
+  sanitizeMetadata,
+} from '@/lib/audit'
 import { PhiBadge } from '@/components/ui/PhiBadge'
 import {
   IconEye,
@@ -27,6 +32,19 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   logo_uploaded: 'Uploaded agency logo',
   document_uploaded: 'Uploaded document',
   login: 'Signed in',
+  logout: 'Signed out',
+  session_timeout: 'Session timed out (inactivity)',
+  mfa_toggled: 'Changed MFA setting',
+  role_switched: 'Switched demo role',
+  admin_surface_accessed: 'Accessed admin console',
+  admin_access_denied: 'Admin access denied (non-internal role)',
+  admin_locked_referral_override: 'Admin override on locked referral',
+  autopay_revenue_recorded: 'Recorded Autopay revenue (mock — no charge)',
+  chat_attachment_added: 'Added chat attachment',
+  support_case_created: 'Created support case',
+  support_case_resolved: 'Resolved support case',
+  admin_support_viewed: 'Viewed support case (admin)',
+  agency_activation_changed: 'Changed agency activation status',
 }
 
 export function auditLabel(action: string): string {
@@ -118,13 +136,18 @@ export function FAHCAuditTimeline({
             <p className="text-xs text-brand-charcoal/60">
               {e.actorRole} · {e.objectType} {e.objectId} · {formatDateTime(e.timestamp)}
             </p>
-            {e.metadata && Object.keys(e.metadata).length > 0 && (
-              <p className="mt-0.5 text-xs text-brand-charcoal/50">
-                {Object.entries(e.metadata)
-                  .map(([k, v]) => `${k}: ${String(v)}`)
-                  .join(' · ')}
-              </p>
-            )}
+            {(() => {
+              // Defence in depth: only ever render sanitized (non-PHI) metadata.
+              const safe = sanitizeMetadata(e.metadata)
+              if (!safe) return null
+              return (
+                <p className="mt-0.5 text-xs text-brand-charcoal/50">
+                  {Object.entries(safe)
+                    .map(([k, v]) => `${k}: ${String(v)}`)
+                    .join(' · ')}
+                </p>
+              )
+            })()}
             {e.ip && (
               <p className="mt-0.5 flex items-center gap-1 text-[11px] text-brand-charcoal/40">
                 <IconLock className="h-3 w-3" /> {e.ip}

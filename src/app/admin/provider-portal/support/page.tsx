@@ -71,7 +71,7 @@ export default function AdminSupportPage() {
                   </div>
                   <div className="shrink-0 text-right">
                     <p className="text-xs text-brand-charcoal/50">{relativeTime(t.updatedAt)}</p>
-                    <Link href="/provider/chat" className="fahc-link text-xs">
+                    <Link href={`/admin/provider-portal/support/${t.id}`} className="fahc-link text-xs">
                       Open
                     </Link>
                   </div>

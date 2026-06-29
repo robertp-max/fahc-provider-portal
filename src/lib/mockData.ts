@@ -46,6 +46,8 @@ export const mockAgency: Agency = {
   profileCompleteness: 85,
   lastVerifiedAt: '2026-05-30T16:20:00.000Z',
   lastVerifiedBy: 'Sarah Intake',
+  activationStatus: 'Active',
+  agreements: { businessLicense: true, referralAgreement: true, baa: true },
 }
 
 const secondAgency: Agency = {
@@ -72,6 +74,8 @@ const secondAgency: Agency = {
     businessHours: 'Mon-Sun 6am-10pm',
   },
   profileCompleteness: 72,
+  activationStatus: 'Pending Activation',
+  agreements: { businessLicense: true, referralAgreement: false, baa: false },
 }
 
 export const mockAgencies: Agency[] = [mockAgency, secondAgency]
@@ -438,6 +442,7 @@ export const mockAuditEvents: AuditEvent[] = [
     ip: '203.0.113.24',
     userAgent: 'Mozilla/5.0 (prototype)',
     phiFlag: false,
+    surface: 'provider',
     metadata: { outcome: 'Contacted' },
   },
   {
@@ -452,6 +457,7 @@ export const mockAuditEvents: AuditEvent[] = [
     ip: '203.0.113.24',
     userAgent: 'Mozilla/5.0 (prototype)',
     phiFlag: false,
+    surface: 'provider',
     metadata: { outcome: 'Start of Care' },
   },
   {
@@ -466,6 +472,7 @@ export const mockAuditEvents: AuditEvent[] = [
     ip: '203.0.113.24',
     userAgent: 'Mozilla/5.0 (prototype)',
     phiFlag: false,
+    surface: 'provider',
   },
   {
     id: 'aud-seed-004',
@@ -479,6 +486,7 @@ export const mockAuditEvents: AuditEvent[] = [
     ip: '203.0.113.51',
     userAgent: 'Mozilla/5.0 (prototype)',
     phiFlag: false,
+    surface: 'provider',
     metadata: { monthYear: '2026-05', amount: 6200, paymentMode: 'Autopay' },
   },
 ]
