@@ -55,7 +55,7 @@ export function FAHCLoginPage() {
           }}
           aria-hidden="true"
         />
-        <Logo tone="white" />
+        <Logo tone="white" className="h-14" />
         <div className="relative max-w-md">
           <h2 className="font-heading text-3xl font-semibold leading-snug text-white">
             Find your place. A welcoming partner experience built on trust and privacy.

@@ -22,7 +22,7 @@ export function Logo({ tone = 'color', className }: LogoProps) {
       alt="Find A Home Care"
       title="Find A Home Care"
       className={cn(
-        'h-9 w-auto max-h-9 object-contain',
+        'h-10 w-auto object-contain',
         className
       )}
       loading="eager"

@@ -151,7 +151,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = useCallback(
     (email: string, password: string, remember: boolean) => {
       const username = email.trim().toLowerCase()
-      if (!username || password !== MOCK_PASSWORD) return null
+      const normalizedPassword = password.trim().toLowerCase()
+      if (!username || normalizedPassword !== MOCK_PASSWORD) return null
 
       const matchedUser =
         username === ADMIN_LOGIN

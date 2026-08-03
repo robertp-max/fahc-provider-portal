@@ -46,7 +46,7 @@ export function FAHCSideNav({ items, open, onClose, context, variant = 'provider
       >
         <div className="flex items-center justify-between px-5 py-5">
           <Link href={items[0]?.href ?? '/'} className="flex flex-col gap-1" onClick={onClose}>
-            <Logo tone="white" />
+            <Logo tone="white" className="h-11" />
             <span className="pl-1 text-[11px] font-medium uppercase tracking-wider text-brand-gold">
               {context}
             </span>
