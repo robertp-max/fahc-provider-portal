@@ -5,32 +5,26 @@ interface LogoProps {
   className?: string
 }
 
-const LOGO_SRC = '/logos/FIndaHomeCare-Logo.webp'
-const MARK_SRC = '/logos/FavIcon-Find-A-HomeCare-e1765429165523-260x257.webp'
+const COLOR_LOGO_SRC = '/logos/FindAHomeCare-logo-horizontal-color.png'
+const WHITE_LOGO_SRC = '/logos/FindAHomeCare-logo-horizontal-white.png'
+const COLOR_MARK_SRC = '/logos/FavIcon-Find-A-HomeCare-e1765429165523-260x257.webp'
+const WHITE_MARK_SRC = '/logos/FindAHomeCare-mark-white.png'
 
 /**
  * The FindAHomeCare brand lockup (real artwork from /public/logos).
- * tone="white" applies an inversion filter for dark navs/login panels.
- * NOTE: For production use a brand-approved white variant asset to avoid any filter-induced
- * color shifts or geometry softening on complex artwork. Current approach preserves aspect via w-auto.
- * Never set both explicit width+height that would distort.
+ * CSS owns the rendered height so the horizontal lockup keeps its natural width.
  */
 export function Logo({ tone = 'color', className }: LogoProps) {
-  const whiteFilter = tone === 'white' ? 'brightness(0) invert(1)' : undefined
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      src={LOGO_SRC}
+      src={tone === 'white' ? WHITE_LOGO_SRC : COLOR_LOGO_SRC}
       alt="Find A Home Care"
       title="Find A Home Care"
-      width={undefined}
-      height={36}
       className={cn(
         'h-9 w-auto max-h-9 object-contain',
-        tone === 'white' && 'brightness-0 invert',
         className
       )}
-      style={whiteFilter ? { filter: whiteFilter } : undefined}
       loading="eager"
       decoding="async"
     />
@@ -42,10 +36,10 @@ export function BrandMark({ tone = 'color', className }: LogoProps) {
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      src={MARK_SRC}
+      src={tone === 'white' ? WHITE_MARK_SRC : COLOR_MARK_SRC}
       alt="Find A Home Care mark"
       title="Find A Home Care"
-      className={cn('h-9 w-9 object-contain', tone === 'white' && 'brightness-0 invert', className)}
+      className={cn('h-9 w-9 object-contain', className)}
       loading="eager"
       decoding="async"
     />
