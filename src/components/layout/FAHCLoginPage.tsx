@@ -13,7 +13,7 @@ export function FAHCLoginPage() {
   const { login, currentUser, loading, rememberedUsername } = useAuth()
 
   const [email, setEmail] = useState('admin')
-  const [password, setPassword] = useState('')
+  const [password, setPassword] = useState('password')
   const [remember, setRemember] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)
