@@ -10,12 +10,12 @@ import {
   useState,
 } from 'react'
 import { ProviderUser, ProviderRole } from './types'
-import { mockUser } from './mockData'
+import { mockUser, mockUsers } from './mockData'
 import { logAudit } from './audit'
 
 // ---------------------------------------------------------------------------
 // Mocked authentication.
-// There is NO real auth here — any non-empty credentials sign the demo user in.
+// There is NO real auth here — the demo password signs in seeded local users.
 // Login IS required (no silent auto-sign-in). In production this is replaced by
 // Google Identity Platform / Firebase Auth with custom JWT claims (agencyId +
 // role) driving tenant isolation.
@@ -23,6 +23,8 @@ import { logAudit } from './audit'
 
 const SESSION_KEY = 'fahc.session.user'
 const REMEMBER_KEY = 'fahc.remember.username'
+const MOCK_PASSWORD = 'password'
+const ADMIN_LOGIN = 'admin'
 
 // Mocked inactivity session timeout (PRD: session timeouts).
 const TIMEOUT_MS = 30 * 60 * 1000 // 30 minutes
@@ -36,7 +38,7 @@ interface AuthContextValue {
   loading: boolean
   rememberedUsername: string | null
   sessionWarning: boolean
-  login: (email: string, password: string, remember: boolean) => boolean
+  login: (email: string, password: string, remember: boolean) => ProviderUser | null
   logout: (reason?: LogoutReason) => void
   extendSession: () => void
   /** Demo affordance: switch the active role to exercise role-based behaviours. */
@@ -148,9 +150,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = useCallback(
     (email: string, password: string, remember: boolean) => {
-      if (!email.trim() || !password.trim()) return false
-      // Sign in as the seeded demo provider; data is scoped to their agency.
-      const user: ProviderUser = { ...mockUser, lastLoginAt: new Date().toISOString() }
+      const username = email.trim().toLowerCase()
+      if (!username || password !== MOCK_PASSWORD) return null
+
+      const matchedUser =
+        username === ADMIN_LOGIN
+          ? mockUsers.find((u) => u.role === 'Internal Admin')
+          : mockUsers.find((u) => u.email.toLowerCase() === username || u.id.toLowerCase() === username)
+
+      // Default to the seeded provider for unknown demo usernames with the correct password.
+      const user: ProviderUser = { ...(matchedUser ?? mockUser), lastLoginAt: new Date().toISOString() }
       setCurrentUser(user)
       persist(user)
       try {
@@ -168,7 +177,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         phiFlag: false,
         surface: 'auth',
       })
-      return true
+      return user
     },
     [persist],
   )

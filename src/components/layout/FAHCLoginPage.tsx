@@ -6,12 +6,13 @@ import { useRouter } from 'next/navigation'
 import { Logo } from '@/components/ui/Logo'
 import { IconEye, IconEyeOff, IconLock, IconShield, IconCheck } from '@/components/ui/icons'
 import { useAuth } from '@/lib/auth'
+import { canAccessAllTenants } from '@/lib/api'
 
 export function FAHCLoginPage() {
   const router = useRouter()
   const { login, currentUser, loading, rememberedUsername } = useAuth()
 
-  const [email, setEmail] = useState('')
+  const [email, setEmail] = useState('admin')
   const [password, setPassword] = useState('')
   const [remember, setRemember] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
@@ -26,18 +27,20 @@ export function FAHCLoginPage() {
   }, [rememberedUsername])
 
   useEffect(() => {
-    if (!loading && currentUser) router.replace('/provider/dashboard')
+    if (!loading && currentUser) {
+      router.replace(canAccessAllTenants(currentUser) ? '/admin/provider-portal' : '/provider/dashboard')
+    }
   }, [loading, currentUser, router])
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
-    const ok = login(email, password, remember)
-    if (!ok) {
-      setError('Please enter a username and password to continue.')
+    const user = login(email, password, remember)
+    if (!user) {
+      setError('Use a valid demo username and password to continue.')
       return
     }
-    router.replace('/provider/dashboard')
+    router.replace(canAccessAllTenants(user) ? '/admin/provider-portal' : '/provider/dashboard')
   }
 
   return (
@@ -119,7 +122,7 @@ export function FAHCLoginPage() {
                   autoComplete="username"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@youragency.com"
+                  placeholder="admin"
                   className="fahc-input"
                 />
               </div>
@@ -177,7 +180,7 @@ export function FAHCLoginPage() {
 
           <p className="mt-4 flex items-center justify-center gap-1.5 text-center text-xs text-brand-charcoal/60">
             <IconShield className="h-3.5 w-3.5 text-brand-primary" />
-            Prototype · mock authentication — enter any username & password to explore.
+            Prototype · mock authentication.
           </p>
         </div>
       </div>
