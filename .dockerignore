@@ -1,0 +1,12 @@
+.codex-logs
+.git
+.next
+.vercel
+node_modules
+output
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.tsbuildinfo
+*.pem
+.env*.local
